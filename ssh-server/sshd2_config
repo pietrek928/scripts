@@ -1,0 +1,24 @@
+Port 17683
+PidFile /var/run/sshd2.pid
+PermitTTY no
+ForceCommand /sbin/nologin
+RekeyLimit 1G 1h
+
+AllowAgentForwarding no
+X11Forwarding no
+PermitRootLogin no
+PasswordAuthentication no
+ChrootDirectory %h
+AllowUsers forwarder
+
+AllowTcpForwarding yes
+AllowStreamLocalForwarding no
+GatewayPorts yes
+PermitTunnel no
+PermitOpen none
+
+ClientAliveInterval 300
+ClientAliveCountMax 2
+TCPKeepAlive yes
+LoginGraceTime 30
+MaxAuthTries 2

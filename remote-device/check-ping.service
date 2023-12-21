@@ -1,0 +1,12 @@
+[Unit]
+Description=Check external server by pinging
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=10m
+ExecStart=/etc/scripts/check-ping.sh
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,14 @@
+[Unit]
+Description=SMS sending daemon
+Wants=modem.service
+After=modem.service
+
+[Service]
+ExecStart=/root/sms/smsd
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+RestartSec=60
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

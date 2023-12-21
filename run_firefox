@@ -1,0 +1,5 @@
+#!/bin/bash
+ulimit -Sm 600000
+ulimit -Hm 700000
+firefox $@
+

@@ -1,0 +1,15 @@
+[Unit]
+Description=Modem - starter
+After=final.target
+Wants=final.target
+
+[Service]
+ExecStart=/etc/scripts/modem-starter.sh
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+RestartSec=1min
+Restart=always
+
+
+[Install]
+WantedBy=multi-user.target
