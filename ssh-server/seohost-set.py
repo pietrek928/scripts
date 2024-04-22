@@ -78,7 +78,7 @@ class SeohostSession:
 
     def update_record(self, zone_id, record_id, name, value, priority=0, ttl=86400, type='A'):
         token = self._query_token(f'dns/{zone_id}/records/{record_id}/edit')
-        self._post(f'/dns/records/{record_id}', f'dns/{zone_id}', dict(
+        self._post(f'dns/records/{record_id}', f'dns/{zone_id}', dict(
             _method='PATCH',
             _token=token,
             record_type=type,
