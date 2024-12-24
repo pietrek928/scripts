@@ -1,6 +1,6 @@
 #!/bin/bash
 
-IP_CACHE_FILE="/run/.ip"
+IP_CACHE_FILE="/tmp/.ip"
 
 rm ${IP_CACHE_FILE}
 

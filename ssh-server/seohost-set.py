@@ -1,12 +1,13 @@
-#!/usr/bin/python
+#!/rw/pyenv/py312/bin/python
 
+from asyncio import run
 import re
 import sys
 from random import choice
 from string import ascii_lowercase, digits
 
-import requests
-from requests import Response
+from lxml import html
+from httpx import AsyncClient, Response
 
 DOMAIN_PREFIX = 'https://panel.seohost.pl/'
 
@@ -35,40 +36,46 @@ class SeohostSession:
 
     @staticmethod
     def _get_token(body: str):
-        return re.findall(r'name="_token" value="\w+"', body)[0].split('"')[3]
+        tree = html.fromstring(body)
+        token_input = tree.xpath('//input[@name="_token"]')
+        if len(token_input) != 1:
+            print(f'!!!!!!! found {len(token_input)} tokens')
+        if token_input:
+            return token_input[0].attrib['value']
 
     def _update_cookies(self, resp: Response):
         self._cookies.update(dict(
             self._get_cookies(resp.headers)
         ))
 
-    def _query_token(self, url_suf):
-        url = DOMAIN_PREFIX + url_suf
-        resp = requests.get(url, cookies=self._cookies, headers=dict(
+    async def _query_token(self, url_suf):
+        async with AsyncClient(cookies=self._cookies, headers=dict(
             self._headers, **{
-                'Origin': DOMAIN_PREFIX,
+                'Origin': DOMAIN_PREFIX.strip('/'),
                 # 'Referer': DOMAIN_PREFIX + referer_suf,
             }
-        ))
-        resp.raise_for_status()
-        self._update_cookies(resp)
-        return self._get_token(resp.text)
+        ), http2=True) as session:
+            url = DOMAIN_PREFIX + url_suf
+            resp = await session.get(url)
+            resp.raise_for_status()
+            self._update_cookies(resp)
+            return self._get_token(resp.text)
 
-    def _post(self, url_suf: str, referer_suf: str, data: dict):
-        resp = requests.post(
-            DOMAIN_PREFIX + url_suf, cookies=self._cookies, headers=dict(
-                self._headers, **{
-                    'Origin': DOMAIN_PREFIX,
-                    'Referer': DOMAIN_PREFIX + referer_suf,
-                }
-            ), data=data
-        )
-        resp.raise_for_status()
-        self._update_cookies(resp)
+    async def _post(self, url_suf: str, referer_suf: str, data: dict):
+        async with AsyncClient(cookies=self._cookies, headers=dict(
+            self._headers, **{
+                'Origin': DOMAIN_PREFIX.strip('/'),
+                'Referer': DOMAIN_PREFIX + referer_suf,
+            }
+        ), http2=True) as session:
+            resp = await session.post(DOMAIN_PREFIX + url_suf, json=data)
+            if resp.status_code >= 400:
+                resp.raise_for_status()
+            self._update_cookies(resp)
 
-    def login(self, email, password):
-        token = self._query_token('login')
-        self._post('login', 'login', dict(
+    async def login(self, email, password):
+        token = await self._query_token('login')
+        await self._post('login', 'login', dict(
             _token=token,
             email=email,
             password=password,
@@ -76,9 +83,9 @@ class SeohostSession:
         ))
         return self
 
-    def update_record(self, zone_id, record_id, name, value, priority=0, ttl=86400, type='A'):
-        token = self._query_token(f'dns/{zone_id}/records/{record_id}/edit')
-        self._post(f'dns/records/{record_id}', f'dns/{zone_id}', dict(
+    async def update_record(self, zone_id, record_id, name, value, priority=0, ttl=86400, type='A'):
+        token = await self._query_token(f'dns/records/{record_id}/edit')
+        await self._post(f'dns/records/{record_id}', f'dns/{zone_id}', dict(
             _method='PATCH',
             _token=token,
             record_type=type,
